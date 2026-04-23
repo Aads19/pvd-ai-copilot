@@ -3,7 +3,42 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import './App.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
+function normalizeApiBase(value) {
+  return (value || '').trim().replace(/\/+$/, '')
+}
+
+const CONFIGURED_API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL)
+const API_BASE_CANDIDATES = Array.from(new Set(
+  CONFIGURED_API_BASE ? [CONFIGURED_API_BASE, ''] : ['']
+))
+
+async function postChat(query) {
+  const requestOptions = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+  }
+
+  let lastError = new Error('Failed to fetch')
+
+  for (const base of API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(`${base}/chat`, requestOptions)
+      if (!response.ok) {
+        lastError = new Error(`Server error: ${response.status}`)
+        if (base) continue
+        throw lastError
+      }
+      return await response.json()
+    } catch (error) {
+      lastError = error
+      if (base) continue
+      throw error
+    }
+  }
+
+  throw lastError
+}
 
 const TAG_STYLES = {
   Background: { color: '#f87171', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' },
@@ -177,14 +212,7 @@ export default function App() {
     advanceSteps(thinkingId, 0)
 
     try {
-      const res = await fetch(`${API_BASE}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
-      })
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`)
-      const data = await res.json()
+      const data = await postChat(q)
 
       clearTimeout(stepTimerRef.current)
 
