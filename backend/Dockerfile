@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir torch==2.3.0 --index-url https://download.pytorch
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cache startup model downloads in the image so Railway boot stays fast.
+RUN python -c "from sentence_transformers import CrossEncoder; CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
+
 # App code
 COPY . .
 
