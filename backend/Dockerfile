@@ -28,4 +28,4 @@ RUN if [ -f /app/chroma_db/chroma.sqlite3.xz ]; then \
 
 EXPOSE 8000
 
-CMD uvicorn main:app --host :: --port ${PORT:-8000}
+CMD uvicorn main:app --host :: --port $PORT
